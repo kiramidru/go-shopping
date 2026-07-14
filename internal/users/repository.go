@@ -1,4 +1,4 @@
-package auth
+package users
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *User) error
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	CreateRefreshToken(ctx context.Context, token *RefreshToken) error
 }
 
 type Repository struct {
@@ -28,6 +29,13 @@ func (r *Repository) CreateUser(ctx context.Context, user *User) error {
 			return ErrUserAlreadyExists
 		}
 		return fmt.Errorf("repository.CreateUser: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) CreateRefreshToken(ctx context.Context, refreshToken *RefreshToken) error {
+	if err := r.db.WithContext(ctx).Create(refreshToken).Error; err != nil {
+		return fmt.Errorf("repository.CreateRefreshToken: %w", err)
 	}
 	return nil
 }

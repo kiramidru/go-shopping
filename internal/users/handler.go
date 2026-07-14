@@ -1,4 +1,4 @@
-package auth
+package users
 
 import (
 	"errors"
@@ -37,6 +37,14 @@ func (h *Handler) Register(c *gin.Context) {
 
 	res, err := h.service.Register(c.Request.Context(), req)
 	if err != nil {
+		if errors.Is(err, ErrInvalidInput) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    "INVALID_INPUT",
+				"message": "Validation failed",
+			})
+			return
+		}
+
 		if errors.Is(err, ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{
 				"code":    "EMAIL_EXISTS",

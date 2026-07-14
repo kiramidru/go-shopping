@@ -1,4 +1,4 @@
-package auth
+package users
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
+	"kiramidru/go-shopping/pkgs"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -14,11 +15,8 @@ var (
 	ErrUserAlreadyExists  = errors.New("user with this email already exists")
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidCredentials = errors.New("invalid email or password")
+	ErrInvalidInput       = errors.New("invalid input")
 )
-
-type TokenGenerator interface {
-	GenerateAccessToken(userID uuid.UUID) (string, error)
-}
 
 type AuthService interface {
 	Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error)
@@ -27,10 +25,10 @@ type AuthService interface {
 
 type Service struct {
 	repo  UserRepository
-	token TokenGenerator
+	token pkgs.TokenGenerator
 }
 
-func NewService(repo UserRepository, tokenGenerator TokenGenerator) *Service {
+func NewService(repo UserRepository, tokenGenerator pkgs.TokenGenerator) *Service {
 	return &Service{
 		repo:  repo,
 		token: tokenGenerator,
@@ -38,15 +36,31 @@ func NewService(repo UserRepository, tokenGenerator TokenGenerator) *Service {
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*RegisterResponse, error) {
-	email := strings.ToLower(strings.TrimSpace(req.Email))
+	firstName := strings.TrimSpace(req.FirstName)
+	lastName := strings.TrimSpace(req.LastName)
+	if firstName == "" || lastName == "" {
+		return nil, ErrInvalidInput
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
+	var phone *string
+	if req.Phone != nil {
+		value := strings.TrimSpace(*req.Phone)
+		if value != "" {
+			phone = &value
+		}
+	}
+
 	user := &User{
-		Email:    email,
-		Password: string(hashedPassword),
+		Email:     strings.ToLower(strings.TrimSpace(req.Email)),
+		Password:  string(hashedPassword),
+		FirstName: firstName,
+		LastName:  lastName,
+		Phone:     phone,
 	}
 
 	if err := s.repo.CreateUser(ctx, user); err != nil {
@@ -55,9 +69,14 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*RegisterR
 
 	return &RegisterResponse{
 		User: UserResponse{
-			ID:        user.ID,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
+			ID:         user.ID,
+			Email:      user.Email,
+			FirstName:  user.FirstName,
+			LastName:   user.LastName,
+			Phone:      user.Phone,
+			Role:       user.Role,
+			IsVerified: user.IsVerified,
+			CreatedAt:  user.CreatedAt,
 		},
 	}, nil
 }
@@ -84,12 +103,33 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 		return nil, fmt.Errorf("generate access token: %w", err)
 	}
 
+	plainToken, tokenHash, expiresAt, err := s.token.GenerateRefreshToken()
+	if err != nil {
+		return nil, fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	refreshToken := &RefreshToken{
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: expiresAt,
+	}
+
+	if err := s.repo.CreateRefreshToken(ctx, refreshToken); err != nil {
+		return nil, err
+	}
+
 	return &LoginResponse{
-		AccessToken: accessToken,
+		AccessToken:  accessToken,
+		RefreshToken: plainToken,
 		User: UserResponse{
-			ID:        user.ID,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
+			ID:         user.ID,
+			Email:      user.Email,
+			FirstName:  user.FirstName,
+			LastName:   user.LastName,
+			Phone:      user.Phone,
+			Role:       user.Role,
+			IsVerified: user.IsVerified,
+			CreatedAt:  user.CreatedAt,
 		},
 	}, nil
 }

@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"kiramidru/go-shopping/internal/auth"
 	"kiramidru/go-shopping/internal/config"
 	"kiramidru/go-shopping/internal/db"
+	"kiramidru/go-shopping/internal/users"
 	"kiramidru/go-shopping/pkgs"
 
 	"github.com/gin-gonic/gin"
@@ -24,10 +24,10 @@ func main() {
 		log.Fatalf("Database connection failed: %v", err)
 	}
 
-	jwtManager := pkgs.NewJWTManager(cfg.JWTSecret, 15*time.Minute)
-	authRepo := auth.NewRepository(db)
-	authService := auth.NewService(authRepo, jwtManager)
-	authHandler := auth.NewHandler(authService)
+	tokenManager := pkgs.NewTokenManager(cfg.JWTSecret, 15*time.Minute, 7*24*time.Hour)
+	userRepo := users.NewRepository(db)
+	userService := users.NewService(userRepo, tokenManager)
+	userHandler := users.NewHandler(userService)
 
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -37,6 +37,6 @@ func main() {
 
 	r := gin.Default()
 	api := r.Group("/api/v1")
-	authHandler.RegisterRoutes(api)
+	userHandler.RegisterRoutes(api)
 	r.Run(port)
 }

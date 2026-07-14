@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"kiramidru/go-shopping/internal/auth"
 	"kiramidru/go-shopping/internal/config"
+	"kiramidru/go-shopping/internal/users"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -39,7 +39,8 @@ func ConnectDatabase(cfg config.Config) (*gorm.DB, error) {
 	psgDB.SetConnMaxLifetime(1 * time.Hour)
 
 	err = db.AutoMigrate(
-		&auth.User{},
+		&users.User{},
+		&users.RefreshToken{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)

@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -29,5 +31,16 @@ func LoadConfig() (cfg Config, err error) {
 		log.Printf("Warning: couldn't find .env file, reading from OS environment: %v", err)
 	}
 	err = viper.Unmarshal(&cfg)
-	return cfg, err
+	if err != nil {
+		return cfg, err
+	}
+
+	if strings.TrimSpace(cfg.JWTSecret) == "" {
+		return cfg, fmt.Errorf("JWT_SECRET must be set")
+	}
+	if len(cfg.JWTSecret) < 32 {
+		return cfg, fmt.Errorf("JWT_SECRET must be at least 32 characters")
+	}
+
+	return cfg, nil
 }
