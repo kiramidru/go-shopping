@@ -9,14 +9,16 @@ import (
 )
 
 type Config struct {
-	JWTSecret  string `mapstructure:"JWT_SECRET"`
-	Port       string `mapstructure:"PORT"`
-	Env        string `mapstructure:"ENV"`
-	DBHost     string `mapstructure:"DB_HOST"`
-	DBPort     string `mapstructure:"DB_PORT"`
-	DBUser     string `mapstructure:"DB_USER"`
-	DBPassword string `mapstructure:"DB_PASSWORD"`
-	DBName     string `mapstructure:"DB_NAME"`
+	JWTSecret     string `mapstructure:"JWT_SECRET"`
+	Port          string `mapstructure:"PORT"`
+	Env           string `mapstructure:"ENV"`
+	DBHost        string `mapstructure:"DB_HOST"`
+	DBPort        string `mapstructure:"DB_PORT"`
+	DBUser        string `mapstructure:"DB_USER"`
+	DBPassword    string `mapstructure:"DB_PASSWORD"`
+	DBName        string `mapstructure:"DB_NAME"`
+	CatalogURL    string `mapstructure:"CATALOG_URL"`
+	CatalogAPIKey string `mapstructure:"CATALOG_API_KEY"`
 }
 
 func LoadConfig() (cfg Config, err error) {

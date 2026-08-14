@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
+	"kiramidru/go-shopping/internal/catalog"
 	"kiramidru/go-shopping/internal/config"
 	"kiramidru/go-shopping/internal/db"
 	"kiramidru/go-shopping/internal/users"
@@ -29,6 +31,9 @@ func main() {
 	userService := users.NewService(userRepo, tokenManager)
 	userHandler := users.NewHandler(userService)
 
+	catalogService := catalog.NewService(http.DefaultClient, cfg.CatalogURL, cfg.CatalogAPIKey)
+	catalogHandler := catalog.NewHandler(catalogService)
+
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -38,5 +43,6 @@ func main() {
 	r := gin.Default()
 	api := r.Group("/api/v1")
 	userHandler.RegisterRoutes(api)
+	catalogHandler.RegisterRoutes(api)
 	r.Run(port)
 }
